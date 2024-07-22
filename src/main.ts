@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
 
-import { fsService } from "./fs.service";
+import {fsService } from "./fs.service";
 
 const app = express();
 app.use(express.json());
