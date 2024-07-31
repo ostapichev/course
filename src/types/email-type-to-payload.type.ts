@@ -13,8 +13,5 @@ export type EmailTypeToPayloadType = {
     "name" | "actionToken"
   >;
 
-  [EmailTypeEnum.LOG_OUT]: PickRequired<
-    EmailPayloadCombinedType,
-    "name" | "actionToken"
-  >;
+  [EmailTypeEnum.LOGOUT]: PickRequired<EmailPayloadCombinedType, "name">;
 };
