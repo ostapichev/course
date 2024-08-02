@@ -135,11 +135,27 @@ class AuthService {
 
   public async verify(jwtPayload: ITokenPayload): Promise<void> {
     await userRepository.updateById(jwtPayload.userId, { isVerified: true });
-
     await actionTokenRepository.deleteByParams({
       _userId: jwtPayload.userId,
       type: ActionTokenTypeEnum.VERIFY_EMAIL,
     });
+  }
+
+  public async changePassword(
+    jwtPayload: ITokenPayload,
+    dto: { oldPassword: string; newPassword: string },
+  ): Promise<void> {
+    const user = await userRepository.getById(jwtPayload.userId);
+    const isPasswordCorrect = await passwordService.comparePassword(
+      dto.oldPassword,
+      user.password,
+    );
+    if (!isPasswordCorrect) {
+      new ApiError("Invalid password", 401);
+    }
+    const password = await passwordService.hashPassword(dto.newPassword);
+    await userRepository.updateById(jwtPayload.userId, { password });
+    await tokenRepository.deleteByParams({ _userId: jwtPayload.userId });
   }
 
   private async isEmailExist(email: string): Promise<void> {

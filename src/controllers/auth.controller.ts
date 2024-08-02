@@ -79,7 +79,6 @@ class AuthController {
     try {
       const dto = req.body as IForgotResetPassword;
       const jwtPayload = req.res.locals.jwtPayload as ITokenPayload;
-
       await authService.forgotPasswordSet(dto, jwtPayload);
       res.sendStatus(204);
     } catch (e) {
@@ -91,6 +90,17 @@ class AuthController {
     try {
       const jwtPayload = req.res.locals.jwtPayload as ITokenPayload;
       await authService.verify(jwtPayload);
+      res.sendStatus(204);
+    } catch (e) {
+      next(e);
+    }
+  }
+
+  public async changePassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const jwtPayload = req.res.locals.jwtPayload as ITokenPayload;
+      const dto = req.body as { oldPassword: string; newPassword: string };
+      await authService.changePassword(jwtPayload, dto);
       res.sendStatus(204);
     } catch (e) {
       next(e);
