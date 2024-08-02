@@ -8,6 +8,7 @@ import {
 import { ITokenPair, ITokenPayload } from "../interfaces/token.interface";
 import { ILogin, IUser } from "../interfaces/user.interface";
 import { actionTokenRepository } from "../repositories/action-token.repository";
+import { oldPasswordRepository } from "../repositories/old-password.repository";
 import { tokenRepository } from "../repositories/token.repository";
 import { userRepository } from "../repositories/user.repository";
 import { emailService } from "./email.service";
@@ -145,7 +146,10 @@ class AuthService {
     jwtPayload: ITokenPayload,
     dto: { oldPassword: string; newPassword: string },
   ): Promise<void> {
-    const user = await userRepository.getById(jwtPayload.userId);
+    const [user, oldPasswords] = await Promise.all([
+      userRepository.getById(jwtPayload.userId),
+      oldPasswordRepository.getByUserId(jwtPayload.userId),
+    ]);
     const isPasswordCorrect = await passwordService.comparePassword(
       dto.oldPassword,
       user.password,
@@ -153,8 +157,24 @@ class AuthService {
     if (!isPasswordCorrect) {
       new ApiError("Invalid password", 401);
     }
+    const passwords = [...oldPasswords, {password: user.password}];
+    await Promise.all(
+      passwords.map(async (oldPassword) => {
+        const isOldPassword = await passwordService.comparePassword(
+          dto.newPassword,
+          oldPassword.password,
+        );
+        if (isOldPassword) {
+          throw new ApiError("New password should not be the same as old", 409);
+        }
+      })
+    );
     const password = await passwordService.hashPassword(dto.newPassword);
     await userRepository.updateById(jwtPayload.userId, { password });
+    await oldPasswordRepository.create({
+      password: user.password,
+      _userId: user._id,
+    });
     await tokenRepository.deleteByParams({ _userId: jwtPayload.userId });
   }
 
