@@ -1,5 +1,6 @@
 import { CronJob } from "cron";
 
+import { configs } from "../configs/configs";
 import { EmailTypeEnum } from "../enums/email-type.enum";
 import { timeHelper } from "../helpers/time.helper";
 import { userRepository } from "../repositories/user.repository";
@@ -10,10 +11,12 @@ const handler = async () => {
     console.log("[oldVisitorCron] Cron is running");
     const date = timeHelper.subtractByParams(7, "day");
     const users = await userRepository.findWithOutActivityAfter(date);
+
     await Promise.all(
       users.map(async (user) => {
         await emailService.sendEmail(EmailTypeEnum.OLD_VISIT, user.email, {
           name: user.name,
+          frontUrl: configs.FRONTEND_URL,
         });
       }),
     );
@@ -23,4 +26,4 @@ const handler = async () => {
   }
 };
 
-export const oldVisitorCron = new CronJob("0 1 * * * *", handler);
+export const oldVisitorCron = new CronJob("*/5 * * 1 * *", handler);
